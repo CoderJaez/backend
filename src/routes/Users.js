@@ -21,47 +21,54 @@ router.post("/login", async (req, res) => {
   });
 });
 
-router.post("/register", async (req, res) => {
+router.post("/register", (req, res) => {
   const { fullname, username, password } = req.body;
   const db = new Database();
   const conn = db.connection;
   let userId = null;
-  await conn.connect(async (err) => {
+  conn.connect((err) => {
     if (err) throw err;
-    await conn.beginTransaction(async (err) => {
-      await conn.query(
-        "insert into users (username, password) values (?,?)",
+    conn.beginTransaction(function (err) {
+      if (err) {
+        throw err;
+      }
+      //This the first query to be executed. If there are some
+      //errors found it will return a callback function rollback()
+      //First query to be executed
+      conn.query(
+        "INSERT INTO users (username, password) values (?,?)",
         [username, password],
-        (err, result) => {
-          if (err) {
-            return conn.rollback(() => {
-              throw err;
+        function (error, results) {
+          if (error) {
+            return conn.rollback(function () {
+              throw error;
             });
           }
-          if (result.affectetedRows > 0) userId = result.insertId;
 
+          userId = results.insertId;
+          //Nested query
           conn.query(
-            "insert into students (fullname) values (?, ?)",
+            "INSERT INTO students (fullname,user_id) values (?,?)",
             [fullname, userId],
-            (err, result) => {
-              if (err) {
-                return conn.rollback(() => {
-                  throw err;
+            function (error, results) {
+              if (error) {
+                return conn.rollback(function () {
+                  throw error;
                 });
               }
+              conn.commit(function (err) {
+                if (err) {
+                  return conn.rollback(function () {
+                    throw err;
+                  });
+                }
+                res.send({ message: "Success" });
+              });
             }
           );
+          //End of second query
         }
       );
-
-      conn.commit((err) => {
-        if (err) {
-          conn.rollback(() => {
-            throw err;
-          });
-        }
-        return res.status(200).send({ message: "Success" });
-      });
     });
   });
 });
