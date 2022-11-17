@@ -8,12 +8,14 @@ const app = express();
 //middleware
 app.use(bodyParser.json());
 app.use(cors());
-// app.options("*", cors());
+app.options("*", cors());
 
 //routes
 const studentsRoute = require("./routes/Students");
+const usersRoute = require("./routes/Users");
 
 app.use("/api/students", studentsRoute);
+app.use("/api/users", usersRoute);
 
 app.listen(3000, function () {
   const db = new Database();
