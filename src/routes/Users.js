@@ -1,6 +1,9 @@
 const express = require("express");
 const Database = require("../configs/Database");
 const router = express.Router();
+const jwt = require("jsonwebtoken");
+
+const SECRET_KEY = process.env.SECRET_KEY;
 
 router.post("/login", async (req, res) => {
   const { username, password } = req.body;
@@ -11,11 +14,24 @@ router.post("/login", async (req, res) => {
     await conn.query(
       `SELECT * FROM users where username = ? and password = ?`,
       [username, password],
-      (err, result) => {
+      (err, result, fields) => {
         if (err) throw err;
         console.log(result);
-        if (result.length > 0)
-          return res.json({ success: true, message: "Welcome" });
+        if (result.length > 0) {
+          const token = jwt.sign(
+            {
+              UserId: fields.id,
+              username: username,
+            },
+            SECRET_KEY,
+            { expiresIn: "1h" }
+          );
+          return res.json({
+            success: true,
+            message: "Login Successfull",
+            token: token,
+          });
+        }
       }
     );
   });
@@ -48,7 +64,7 @@ router.post("/register", (req, res) => {
           userId = results.insertId;
           //Nested query
           conn.query(
-            "INSERT INTO students (fullname,user_id) values (?,?)",
+            "INSERT INTO students (fullname, user_id) values (?,?)",
             [fullname, userId],
             function (error, results) {
               if (error) {
@@ -59,10 +75,19 @@ router.post("/register", (req, res) => {
               conn.commit(function (err) {
                 if (err) {
                   return conn.rollback(function () {
+                    console.log("Error", err.sqlMessage);
                     throw err;
                   });
                 }
-                res.send({ message: "Success" });
+                const token = jwt.sign(
+                  {
+                    UserId: userId,
+                    name: fullname,
+                  },
+                  SECRET_KEY,
+                  { expiresIn: "10s" }
+                );
+                res.send({ success: true, message: "Success", token: token });
               });
             }
           );

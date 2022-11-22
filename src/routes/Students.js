@@ -1,8 +1,8 @@
 const express = require("express");
 const Database = require("../configs/Database");
 const router = express.Router();
-
-router.delete("/:id", async (req, res) => {
+const authenticate = require("../helpers/auth");
+router.delete("/:id", authenticate, async (req, res) => {
   const { id } = req.params;
 
   const db = new Database(); //Instance
@@ -17,7 +17,7 @@ router.delete("/:id", async (req, res) => {
   });
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", authenticate, async (req, res) => {
   const { fullname } = req.body;
   const { id } = req.params;
 
@@ -36,7 +36,7 @@ router.put("/:id", async (req, res) => {
   });
 });
 
-router.post("/", async (req, res) => {
+router.post("/", authenticate, async (req, res) => {
   const { fullname } = req.body;
 
   const db = new Database(); //Instance
@@ -54,7 +54,7 @@ router.post("/", async (req, res) => {
   });
 });
 
-router.get("/", async (req, res) => {
+router.get("/", authenticate, async (req, res) => {
   const db = new Database(); //Instance
   const conn = db.connection; // Defined conn for connection prop
   await conn.connect((err) => {
